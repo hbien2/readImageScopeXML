@@ -1,5 +1,5 @@
 [package]
-name = "extract_ann"
+name = "read_image_scope_xml"
 version = "0.1.0"
 edition = "2021"
 
