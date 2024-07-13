@@ -1,0 +1,82 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'readImageScopeXML'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=readImageScopeXML"
+                ],
+                "filter": {
+                    "name": "readImageScopeXML",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'readImageScopeXML' Home",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=readImageScopeXML",
+                    "--package=readImageScopeXML"
+                ],
+                "filter": {
+                    "name": "readImageScopeXML",
+                    "kind": "bin"
+                }
+            },
+            "args": ["S:\\.shortcut-targets-by-id\\1Csel8vgZFXeY7yCcGxFvSvu05cDTtn3v\\Single_Cell_Core\\Lin Lab\\Mark\\Histowiz_Annotations\\histowiz_files"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'readImageScopeXML' Work",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=readImageScopeXML",
+                    "--package=readImageScopeXML"
+                ],
+                "filter": {
+                    "name": "readImageScopeXML",
+                    "kind": "bin"
+                }
+            },
+            "args": ["C:/Users/VHANOPBIENH/Downloads"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'readImageScopeXML'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=readImageScopeXML",
+                    "--package=readImageScopeXML"
+                ],
+                "filter": {
+                    "name": "readImageScopeXML",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

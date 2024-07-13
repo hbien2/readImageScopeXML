@@ -15,5 +15,5 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     
     dbg!(&search_path);
 
-    return extract_ann::run(search_path);        
+    return read_imagescope_xml::run(search_path);        
 }
