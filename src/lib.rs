@@ -1,5 +1,61 @@
-use std::{error, path, fs::File, io::BufReader, ffi::OsString};
-use xml::reader::{EventReader, XmlEvent};
+use std::{error, path, ffi::OsString};
+use serde::{Deserialize, Serialize};
+use std::fs::read_to_string;
+use std::collections::HashMap;
+
+/// Information we wish to collect about a region
+#[derive(Debug)]
+struct RegionInfo {
+    text_label: Option<String>,
+    positivity: Option<f32>,
+}
+
+impl RegionInfo {
+    /// Make new RegionInfo with fully specified Options
+    fn new() -> Self {
+        Self { text_label: None, positivity: None }
+    }
+    
+    /// Get text label
+    fn text_label(&self) -> Option<&String> {
+        self.text_label.as_ref()
+    }
+    
+    /// Get positivity
+    fn positivity(&self) -> Option<f32> {
+        self.positivity
+    }
+    
+    /// Set new text label
+    fn set_text_label(&mut self, text_label: Option<String>) {
+        self.text_label = text_label;
+    }
+    
+    /// Set positivity
+    fn set_positivity(&mut self, positivity: Option<f32>) {
+        self.positivity = positivity;
+    }
+
+    /// Check if text label is set
+    fn has_label(&self) -> bool {
+        self.text_label.is_some()
+    }
+
+    /// Check if positivity set
+    fn has_positivity(&self) -> bool {
+        self.positivity.is_some()
+    }
+
+}
+
+/// Try to open and real a XML file using pre-defined structure
+pub fn parse_xml(path: &path::Path) -> Annotations {
+    // Read file into string and ignore any errors
+    let xml = read_to_string(path).unwrap_or_default();
+    // Now convert the XML into Rust data structure 
+    let annotations: Annotations = quick_xml::de::from_str(&xml).expect("Error reading XML");
+    return annotations;
+}
 
 pub fn run(search_path: &path::Path) -> Result<(), Box<dyn error::Error>> {
     // Iterate through list of files in search path looking for XML files only
@@ -10,6 +66,73 @@ pub fn run(search_path: &path::Path) -> Result<(), Box<dyn error::Error>> {
     }) {        
         let filepath = entry?.path(); // Since this is filtered, all values of the entry iterator should have valid path() so safe to use unwrap()
         //dbg!(&filepath);
+
+        // Read XML file into annotations structure     
+        let annotations = parse_xml(&filepath);
+        //dbg!(&annotations);
+
+        // Collect information about each region
+        let mut regions_info: HashMap<String, RegionInfo> = HashMap::new();
+        
+        // Process each annotation layer
+        for layer in annotations.annotation {
+            match layer.annotation_type.as_str() {                
+                "4" => {
+                    //dbg!(&layer);
+                    // Type "4" are user-drawn regions
+                    // We will extract the text label for each region identified by 'Id'
+                    for r in layer.regions.region {           
+                        //dbg!(&r);     
+                        // Find the correct region Id to store information                   
+                        regions_info.entry(r.id.clone())
+                        // Or make a new region Id entry if missing
+                        .or_insert(RegionInfo::new())
+                        // Store the label
+                        .set_text_label(Some(r.text));
+                    }
+                },
+                "3" => {
+                    // Type "3" are analysis regions. We first need to find the value corresponding to the attribute "Positivity", usually 14                    
+                    if let Some(positivity_attribute) = layer.regions.region_attribute_headers.attribute_header
+                        .expect("Type 3 annotation layer is missing Region Attribute header")
+                        .iter().find(|attrib| attrib.name.starts_with("Positivity =")) {
+                            //dbg!(positivity_attribute);
+                            // Now scan through each region looking for attributes that match positivity_attribute.id and store the value
+                            for r in layer.regions.region {
+                                //dbg!(&r);
+                                // Check first if there exists a Region Attributes section for this region
+                                if let Some(region_attrib) = r.attributes.attribute {
+                                    // Now search through each atttribute to find the positivity attribute
+                                    match region_attrib.iter().find(|attrib| attrib.name==positivity_attribute.id) {
+                                        Some(attrib) => 
+                                            // Find the correct region Id to store information
+                                            regions_info.entry(r.id.clone())
+                                            // Or make a new entry if missing
+                                            .or_insert(RegionInfo::new())
+                                            // Convert result into f32 and return NAN if unable
+                                            .set_positivity(Some(attrib.value.trim().parse::<f32>().unwrap_or(std::f32::NAN))),
+                                        None => {}, // Ignore lack of positivity in the Region attributes
+                                    }
+                                }                                
+                            }
+                        }                    
+                },
+                // Ignore others
+                &_ => {},
+            }            
+        }
+
+        // Report filename, region, and information about each region
+        for r in &regions_info {
+            println!("{}, {}, {}, {}", &filepath.display(), r.0, r.1.text_label().unwrap_or(&String::from("")), r.1.positivity().unwrap_or(std::f32::NAN));
+
+        }
+        //dbg!(&regions_info);
+
+        
+        
+
+        /*
         let file = File::open(&filepath);           
         match file {
             Ok(file)=> {
@@ -94,7 +217,129 @@ pub fn run(search_path: &path::Path) -> Result<(), Box<dyn error::Error>> {
                     }
                 },
                 Err(error) => eprintln!("Error opening file: {:?}", error),
-        } 
+        } */ 
     } 
+
     return Ok(());
+}
+
+/// List of annotations
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Annotations {
+    /// Scale in microns per pixel (assuming square aspect ratio)
+    #[serde(rename = "@MicronsPerPixel")]
+    pub microns_per_pixel: String,
+    /// List of annotations
+    #[serde(rename = "Annotation")]
+    pub annotation: Vec<Annotation>,
+}
+
+/// An annotation layer
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Annotation {
+    /// Annotation ID
+    #[serde(rename = "@Id")]
+    pub id: String,
+    /// Name of annotation layer
+    #[serde(rename = "@Name")]
+    pub name: String,
+    /// Annotation type
+    /// 4 = user-defined drawn regions
+    /// 3 = calculated data from analysis
+    #[serde(rename = "@Type")]
+    pub annotation_type: String,
+    /// List of annotation attributes
+    #[serde(rename = "Attributes")]
+    pub attributes: AnnotationAttributes,
+    /// List of regions
+    #[serde(rename = "Regions")]
+    pub regions: Regions
+}
+
+/// A specific attribute for an annotation
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AnnotationAttributes {
+    #[serde(rename = "Attribute")]
+    pub attribute: Option<Vec<AnnotationAttributesAttribute>>,
+}
+
+/// Annotation attribute details
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AnnotationAttributesAttribute {
+    #[serde(rename = "@Name")]
+    pub name: String,
+    #[serde(rename = "@Id")]
+    pub id: String,
+    #[serde(rename = "@Value")]
+    pub value: String,
+}
+
+/// List of regions in an annotation layer
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Regions {
+    #[serde(rename = "RegionAttributeHeaders")]
+    pub region_attribute_headers: RegionAttributeHeaders,
+    #[serde(rename = "Region")]
+    pub region: Vec<Region>,
+}
+
+/// Meta-information about region attributes common across regions (header)
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RegionAttributeHeaders {
+    #[serde(rename = "AttributeHeader")]
+    pub attribute_header: Option<Vec<AttributeHeader>>,
+}
+
+/// Region attribute header details
+#[derive(Serialize, Deserialize, Debug)]
+pub struct AttributeHeader {
+    #[serde(rename = "@Id")]
+    pub id: String,
+    #[serde(rename = "@Name")]
+    pub name: String,
+}
+
+/// Details about each region
+#[derive(Serialize, Deserialize, Debug)]
+pub struct Region {
+    #[serde(rename = "@Id")]
+    pub id: String,
+    #[serde(rename = "@Type")]
+    pub region_type: String,
+    #[serde(rename = "@Length")]
+    pub length: String,
+    #[serde(rename = "@Area")]
+    pub area: String,
+    #[serde(rename = "@LengthMicrons")]
+    pub length_microns: String,
+    #[serde(rename = "@AreaMicrons")]
+    pub area_microns: String,
+    #[serde(rename = "@Text")]
+    pub text: String,
+    #[serde(rename = "@NegativeROA")]
+    pub negative_roa: String,
+    #[serde(rename = "@Analyze")]
+    pub analyze: String,
+    #[serde(rename = "Attributes")]
+    pub attributes: RegionAttributes,
+}
+
+/// Region attribute
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RegionAttributes {
+    #[serde(rename = "Attribute")]
+    pub attribute: Option<Vec<RegionAttributesAttribute>>,
+}
+
+/// Region attribute detail
+#[derive(Serialize, Deserialize, Debug)]
+pub struct RegionAttributesAttribute {
+    #[serde(rename = "@Name")]
+    pub name: String,
+    #[serde(rename = "@Id")]
+    pub id: String,
+    #[serde(rename = "@Value")]
+    pub value: String,
+    #[serde(rename = "@DisplayColor")]
+    pub display_color: String,
 }

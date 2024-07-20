@@ -7,16 +7,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in library 'readImageScopeXML'",
+            "name": "Debug unit tests in library 'read_imagescope_xml'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
                     "--lib",
-                    "--package=readImageScopeXML"
+                    "--package=read_imageScope_xml"
                 ],
                 "filter": {
-                    "name": "readImageScopeXML",
+                    "name": "read_imagescope_xml",
                     "kind": "lib"
                 }
             },
@@ -26,33 +26,33 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'readImageScopeXML' Home",
+            "name": "Debug executable 'read_imagescope_xml' gDrive",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=readImageScopeXML",
-                    "--package=readImageScopeXML"
+                    "--bin=read_imagescope_xml",
+                    "--package=read_imagescope_xml"
                 ],
                 "filter": {
-                    "name": "readImageScopeXML",
+                    "name": "read_imagescope_xml",
                     "kind": "bin"
                 }
             },
-            "args": ["S:\\.shortcut-targets-by-id\\1Csel8vgZFXeY7yCcGxFvSvu05cDTtn3v\\Single_Cell_Core\\Lin Lab\\Mark\\Histowiz_Annotations\\histowiz_files"],
+            "args": ["S:\\.shortcut-targets-by-id\\1Csel8vgZFXeY7yCcGxFvSvu05cDTtn3v\\Single_Cell_Core\\Lin Lab\\Histowiz"],
             "cwd": "${workspaceFolder}"
         },
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug executable 'readImageScopeXML' Work",
+            "name": "Debug executable 'read_imagescope_xml' Downloads",
             "cargo": {
                 "args": [
                     "build",
-                    "--bin=readImageScopeXML",
-                    "--package=readImageScopeXML"
+                    "--bin=read_imagescope_xml",
+                    "--package=read_imagescope_xml"
                 ],
                 "filter": {
-                    "name": "readImageScopeXML",
+                    "name": "read_imagescope_xml",
                     "kind": "bin"
                 }
             },
@@ -62,16 +62,16 @@
         {
             "type": "lldb",
             "request": "launch",
-            "name": "Debug unit tests in executable 'readImageScopeXML'",
+            "name": "Debug unit tests in executable 'read_imagescope_xml'",
             "cargo": {
                 "args": [
                     "test",
                     "--no-run",
-                    "--bin=readImageScopeXML",
-                    "--package=readImageScopeXML"
+                    "--bin=read_imagescope_xml",
+                    "--package=read_imagescope_xml"
                 ],
                 "filter": {
-                    "name": "readImageScopeXML",
+                    "name": "read_imagescope_xml",
                     "kind": "bin"
                 }
             },
