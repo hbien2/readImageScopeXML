@@ -7,13 +7,15 @@ use std::collections::HashMap;
 #[derive(Debug)]
 struct RegionInfo {
     text_label: Option<String>,
+    num_positive: Option<f32>,
+    num_total: Option<f32>,
     positivity: Option<f32>,
 }
 
 impl RegionInfo {
     /// Make new RegionInfo with fully specified Options
     fn new() -> Self {
-        Self { text_label: None, positivity: None }
+        Self { text_label: None, positivity: None, num_positive: None, num_total: None }
     }
     
     /// Get text label
@@ -26,25 +28,34 @@ impl RegionInfo {
         self.positivity
     }
     
+    /// Get number pixels positive
+    fn num_positive(&self) -> Option<f32> {
+        self.num_positive
+    }
+
+    /// Get total number of non-background pixels
+    fn num_total(&self) -> Option<f32> {
+        self.num_total
+    }
+
     /// Set new text label
     fn set_text_label(&mut self, text_label: Option<String>) {
         self.text_label = text_label;
     }
     
+    /// Set number positive
+    fn set_num_positive(&mut self, num_pos: Option<f32>) {
+        self.num_positive = num_pos;
+    }
+
+    /// Set number total
+    fn set_num_total(&mut self, num_total: Option<f32>) {
+        self.num_total = num_total;
+    }
     /// Set positivity
     fn set_positivity(&mut self, positivity: Option<f32>) {
         self.positivity = positivity;
-    }
-
-    /// Check if text label is set
-    fn has_label(&self) -> bool {
-        self.text_label.is_some()
-    }
-
-    /// Check if positivity set
-    fn has_positivity(&self) -> bool {
-        self.positivity.is_some()
-    }
+    } 
 
 }
 
@@ -92,40 +103,76 @@ pub fn run(search_path: &path::Path) -> Result<(), Box<dyn error::Error>> {
                     }
                 },
                 "3" => {
-                    // Type "3" are analysis regions. We first need to find the value corresponding to the attribute "Positivity", usually 14                    
-                    if let Some(positivity_attribute) = layer.regions.region_attribute_headers.attribute_header
-                        .expect("Type 3 annotation layer is missing Region Attribute header")
-                        .iter().find(|attrib| attrib.name.starts_with("Positivity =")) {
-                            //dbg!(positivity_attribute);
-                            // Now scan through each region looking for attributes that match positivity_attribute.id and store the value
-                            for r in layer.regions.region {
-                                //dbg!(&r);
-                                // Check first if there exists a Region Attributes section for this region
-                                if let Some(region_attrib) = r.attributes.attribute {
-                                    // Now search through each atttribute to find the positivity attribute
-                                    match region_attrib.iter().find(|attrib| attrib.name==positivity_attribute.id) {
-                                        Some(attrib) => 
-                                            // Find the correct region Id to store information
-                                            regions_info.entry(r.id.clone())
-                                            // Or make a new entry if missing
-                                            .or_insert(RegionInfo::new())
-                                            // Convert result into f32 and return NAN if unable
-                                            .set_positivity(Some(attrib.value.trim().parse::<f32>().unwrap_or(std::f32::NAN))),
-                                        None => {}, // Ignore lack of positivity in the Region attributes
+                    // Ensure an attribute header exists
+                    if let Some(attribute_header) = layer.regions.region_attribute_headers.attribute_header {
+                        // Locate specific attributes of interest
+                        let positivity_attrib = attribute_header.iter().find(|a| a.name.starts_with("Positivity ="));
+                        let num_positive_attrib = attribute_header.iter().find(|a| a.name.starts_with("Np  ="));
+                        let num_total_attrib = attribute_header.iter().find(|a| a.name.starts_with("NTotal ="));
+                        // If any element is missing, we will skip the file
+                        if positivity_attrib.is_none() {
+                            eprintln!("Missing positivity in {}", filepath.display());
+                            continue;
+                        }
+                        if num_positive_attrib.is_none() {
+                            eprintln!("Missing number positive in {}", filepath.display());
+                            continue;
+                        }
+                        if num_total_attrib.is_none() {
+                            eprintln!("Missing number total in {}", filepath.display());
+                            continue;
+                        } 
+                        // By now we know all selected variables are valid so unwrap them
+                        let positivity_name=positivity_attrib.expect("Missing positivity attribute after is_none is false").id.clone();
+                        let num_positive_name=num_positive_attrib.expect("Missing number positive attribute after is_none is false").id.clone();
+                        let num_total_name=num_total_attrib.expect("Missing total number attribute after is_none is false").id.clone();
+                        // Now scan through each region looking for specified attributes and store the value
+                        for r in layer.regions.region {
+                            //dbg!(&r);
+                            // Check first if there exists a Region Attributes section for this region
+                            if let Some(region_attrib) = r.attributes.attribute {
+                                // Now search through each atttribute to find the positivity attribute
+                                for attrib in region_attrib {
+                                    if attrib.name==positivity_name {
+                                        // Find the correct region Id to store information
+                                        regions_info.entry(r.id.clone())
+                                        // Or make a new entry if missing
+                                        .or_insert(RegionInfo::new())
+                                        // Convert result into f32 and return NAN if unable
+                                        .set_positivity(Some(attrib.value.trim().parse::<f32>().unwrap_or(std::f32::NAN)));
+                                    }
+                                    if attrib.name==num_positive_name {
+                                        // Find the correct region Id to store information
+                                        regions_info.entry(r.id.clone())
+                                        // Or make a new entry if missing
+                                        .or_insert(RegionInfo::new())
+                                        // Convert result into f32 and return 0 if unable
+                                        .set_num_positive(Some(attrib.value.trim().parse::<f32>().unwrap_or(std::f32::NAN)));
+                                    }
+                                    if attrib.name==num_total_name {
+                                        // Find the correct region Id to store information
+                                        regions_info.entry(r.id.clone())
+                                        // Or make a new entry if missing
+                                        .or_insert(RegionInfo::new())
+                                        // Convert result into f32 and return 0 if unable
+                                        .set_num_total(Some(attrib.value.trim().parse::<f32>().unwrap_or(std::f32::NAN)));
                                     }
                                 }                                
-                            }
-                        }                    
+                            }                                
+                        }
+                    } else {
+                        eprintln!("In {}: Type 3 annotation layer is missing Region Attribute header", filepath.display());
+                        continue;
+                    }
                 },
-                // Ignore others
+                // Ignore other annotation types
                 &_ => {},
             }            
         }
 
         // Report filename, region, and information about each region
         for r in &regions_info {
-            println!("{}, {}, {}, {}", &filepath.display(), r.0, r.1.text_label().unwrap_or(&String::from("")), r.1.positivity().unwrap_or(std::f32::NAN));
-
+            println!("{}, {}, {}, {}, {}, {}", &filepath.display(), r.0, r.1.text_label().unwrap_or(&String::from("")), r.1.positivity().unwrap_or(std::f32::NAN), r.1.num_positive().unwrap_or(std::f32::NAN), r.1.num_total().unwrap_or(std::f32::NAN));
         }
         //dbg!(&regions_info);
 
