@@ -1,0 +1,82 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'read_imagescope_xml'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=read_imageScope_xml"
+                ],
+                "filter": {
+                    "name": "read_imagescope_xml",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'read_imagescope_xml' gDrive",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=read_imagescope_xml",
+                    "--package=read_imagescope_xml"
+                ],
+                "filter": {
+                    "name": "read_imagescope_xml",
+                    "kind": "bin"
+                }
+            },
+            "args": ["S:\\.shortcut-targets-by-id\\1Csel8vgZFXeY7yCcGxFvSvu05cDTtn3v\\Single_Cell_Core\\Lin Lab\\Histowiz"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug executable 'read_imagescope_xml' Downloads",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--bin=read_imagescope_xml",
+                    "--package=read_imagescope_xml"
+                ],
+                "filter": {
+                    "name": "read_imagescope_xml",
+                    "kind": "bin"
+                }
+            },
+            "args": ["C:/Users/VHANOPBIENH/Downloads"],
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in executable 'read_imagescope_xml'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bin=read_imagescope_xml",
+                    "--package=read_imagescope_xml"
+                ],
+                "filter": {
+                    "name": "read_imagescope_xml",
+                    "kind": "bin"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
