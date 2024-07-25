@@ -172,7 +172,7 @@ pub fn run(search_path: &path::Path) -> Result<(), Box<dyn error::Error>> {
 
         // Report filename, region, and information about each region
         for r in &regions_info {
-            println!("{}, {}, {}, {}, {}, {}", &filepath.display(), r.0, r.1.text_label().unwrap_or(&String::from("")), r.1.positivity().unwrap_or(std::f32::NAN), r.1.num_positive().unwrap_or(std::f32::NAN), r.1.num_total().unwrap_or(std::f32::NAN));
+            println!("{}, {}, {}, {}, {}, {}", &filepath.file_name().expect("Error parsing filename from full path").to_str().expect("Unable to convert filename to string"), r.0, r.1.text_label().unwrap_or(&String::from("")), r.1.positivity().unwrap_or(std::f32::NAN), r.1.num_positive().unwrap_or(std::f32::NAN), r.1.num_total().unwrap_or(std::f32::NAN));
         }
         //dbg!(&regions_info);
 
