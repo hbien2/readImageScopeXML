@@ -7,6 +7,7 @@ use std::collections::HashMap;
 #[derive(Debug)]
 struct RegionInfo {
     text_label: Option<String>,
+    image_location: Option<String>,
     num_positive: Option<f32>,
     num_total: Option<f32>,
     positivity: Option<f32>,
@@ -15,7 +16,7 @@ struct RegionInfo {
 impl RegionInfo {
     /// Make new RegionInfo with fully specified Options
     fn new() -> Self {
-        Self { text_label: None, positivity: None, num_positive: None, num_total: None }
+        Self { text_label: None, positivity: None, num_positive: None, num_total: None, image_location: None}
     }
     
     /// Get text label
@@ -55,6 +56,14 @@ impl RegionInfo {
     /// Set positivity
     fn set_positivity(&mut self, positivity: Option<f32>) {
         self.positivity = positivity;
+    }
+    
+    fn image_location(&self) -> Option<&String> {
+        self.image_location.as_ref()
+    }
+    
+    fn set_image_location(&mut self, image_location: Option<String>) {
+        self.image_location = image_location;
     } 
 
 }
@@ -69,6 +78,8 @@ pub fn parse_xml(path: &path::Path) -> Annotations {
 }
 
 pub fn run(search_path: &path::Path) -> Result<(), Box<dyn error::Error>> {
+    // Setup header
+    println!("Filename,Slide name,Region ID,text label,positivity,num positive,num total");
     // Iterate through list of files in search path looking for XML files only
     for entry in search_path.read_dir().expect("Invalid search path").filter(|dirent| {
         dirent.as_ref().is_ok_and(|d|  {
@@ -129,6 +140,18 @@ pub fn run(search_path: &path::Path) -> Result<(), Box<dyn error::Error>> {
                         // Now scan through each region looking for specified attributes and store the value
                         for r in layer.regions.region {
                             //dbg!(&r);
+                            // Get image location for this region (stripped down to just the filename)
+                            if let Some(loc) = path::Path::new(&r.image_location.unwrap_or(String::from(""))).file_name() {
+                                // Try to convert OsStr to String
+                                if let Some(lp) = loc.to_str() {
+                                    // Start by locating a region info for this region
+                                    regions_info.entry(r.id.clone())
+                                    // or alternatively make a new entry
+                                    .or_insert(RegionInfo::new())
+                                    // Convert result into String and return "" if unable
+                                    .set_image_location(Some(lp.to_string()));
+                                }                                
+                            }
                             // Check first if there exists a Region Attributes section for this region
                             if let Some(region_attrib) = r.attributes.attribute {
                                 // Now search through each atttribute to find the positivity attribute
@@ -172,7 +195,7 @@ pub fn run(search_path: &path::Path) -> Result<(), Box<dyn error::Error>> {
 
         // Report filename, region, and information about each region
         for r in &regions_info {
-            println!("{}, {}, {}, {}, {}, {}", &filepath.file_name().expect("Error parsing filename from full path").to_str().expect("Unable to convert filename to string"), r.0, r.1.text_label().unwrap_or(&String::from("")), r.1.positivity().unwrap_or(std::f32::NAN), r.1.num_positive().unwrap_or(std::f32::NAN), r.1.num_total().unwrap_or(std::f32::NAN));
+            println!("{}, {}, {}, {}, {}, {}, {}", &filepath.file_name().expect("Error parsing filename from full path").to_str().expect("Unable to convert filename to string"), r.1.image_location().unwrap_or(&String::from("")), r.0, r.1.text_label().unwrap_or(&String::from("")), r.1.positivity().unwrap_or(std::f32::NAN), r.1.num_positive().unwrap_or(std::f32::NAN), r.1.num_total().unwrap_or(std::f32::NAN));
         }
         //dbg!(&regions_info);
 
@@ -369,6 +392,8 @@ pub struct Region {
     pub analyze: String,
     #[serde(rename = "Attributes")]
     pub attributes: RegionAttributes,
+    #[serde(rename="@ImageLocation")]
+    pub image_location: Option<String>,
 }
 
 /// Region attribute
