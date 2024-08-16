@@ -15,5 +15,6 @@ fn main() -> Result<(), Box<dyn error::Error>> {
     
     dbg!(&search_path);
 
-    return read_imagescope_xml::run(search_path);        
+    // Return the results from parsing the XML files
+    read_imagescope_xml::run(search_path)        
 }

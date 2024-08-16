@@ -1,4 +1,4 @@
-use std::{error, path, ffi::OsString};
+use std::{error, path};
 use serde::{Deserialize, Serialize};
 use std::fs::read_to_string;
 use std::collections::HashMap;
@@ -81,9 +81,11 @@ impl RegionInfo {
         self.positivity = positivity;
     }
     
+    /* We don't use image location
     fn image_location(&self) -> Option<&String> {
         self.image_location.as_ref()
-    }
+    } 
+    */
     
     fn set_image_location(&mut self, image_location: Option<String>) {
         self.image_location = image_location;
@@ -121,7 +123,7 @@ pub fn parse_xml(path: &path::Path) -> Annotations {
         Err(e) => eprintln!("Error parsing XML from {}: {}", path.display(), e),
     }
     // Error parsing so return empty
-    return Annotations { microns_per_pixel: String::from(""), annotation: Vec::new()};
+    Annotations { microns_per_pixel: String::from(""), annotation: Vec::new()}
 }
 
 pub fn run(search_path: &path::Path) -> Result<(), Box<dyn error::Error>> {
@@ -130,7 +132,7 @@ pub fn run(search_path: &path::Path) -> Result<(), Box<dyn error::Error>> {
     // Iterate through list of files in search path looking for XML files only
     for entry in search_path.read_dir().expect("Invalid search path").filter(|dirent| {
         dirent.as_ref().is_ok_and(|d|  {
-            return d.path().as_path().extension().is_some_and(|e| e.to_ascii_lowercase()==OsString::from("xml"));
+            return d.path().as_path().extension().is_some_and(|e| e.to_ascii_lowercase()==*"xml");
         })
     }) {        
         let filepath = entry?.path(); // Since this is filtered, all values of the entry iterator should have valid path() so safe to use unwrap()
@@ -287,7 +289,7 @@ pub fn run(search_path: &path::Path) -> Result<(), Box<dyn error::Error>> {
                 slidename.file_name().expect("Missing SVS slide filename").to_str().expect("Error converting SVS filename to string"), 
                 r.0, 
                 r.1.text_label().unwrap_or(&String::from("")).trim(), 
-                r.1.positivity().unwrap_or(std::f32::NAN), 
+                r.1.positivity().unwrap_or(f32::NAN), 
                 r.1.num_wpositive().unwrap_or(0.0),
                 r.1.num_positive().unwrap_or(0.0), 
                 r.1.num_spositive().unwrap_or(0.0),
@@ -296,7 +298,8 @@ pub fn run(search_path: &path::Path) -> Result<(), Box<dyn error::Error>> {
         }
     } 
 
-    return Ok(());
+    // Return Ok    
+    Ok(())
 }
 
 /// List of annotations
